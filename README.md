@@ -202,5 +202,9 @@ Install virtualenv:
 
 ## Useful Links
 
-* [RIF Lumino Network](https://www.rifos.org/rif-lumino-network/)
+
+* [RIF Lumino Network documentation](https://www.rifos.org/rif-lumino-network/)
 * [RIF Lumino Explorer](http://explorer.lumino.rifos.org/)
+* [RIF Lumino Network](https://github.com/rsksmart/lumino) 
+* [RIF Lumino Web](https://github.com/rsksmart/lumino-web) 
+* [RIF Lumino Explorer](https://github.com/rsksmart/lumino-explorer) 
