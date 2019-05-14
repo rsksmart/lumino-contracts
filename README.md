@@ -20,7 +20,7 @@ Lumino has a set of Smart Contracts, that must be deployed into the RSK network,
 
 ## Build RIF Lumino contract 
 
-1. Get the [RELEASE.NUMBER] code from [GITHUB.URL]
+1. Git clone
 2. Go to the path you downloaded or cloned Lumino's code (lets call this path `$RIF_LUMINO_CONTRACTS_PATH`)
 3. Create python virtual env for RIF Lumino (this has to be made one time)
 
