@@ -14,7 +14,6 @@ Lumino has a set of Smart Contracts, that must be deployed into the RSK network,
 2. Python 3.6
 3. Pip
 4. Virtualenv
-5. Yarn (Latest Version)
 
 
 
