@@ -1,5 +1,5 @@
 # RIF Lumino Contracts
-
+![Lumino Network](Lumino.png?raw=true "RIF Lumino Network")
 
 ## Overview
 
