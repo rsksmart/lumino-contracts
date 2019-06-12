@@ -7,6 +7,81 @@ Documents changes that result in:
 
 ## Unreleased
 
+- Unlock-related functions' and events' arguments are renamed into `sender` and `receiver`
+
+## [0.20.0](https://github.com/raiden-network/raiden-contracts/releases/tag/v0.20.0) - 2019-05-17
+
+- [#979](https://github.com/raiden-network/raiden-contracts/pull/979) Start using SHA256 for the hashlock.
+- [#979](https://github.com/raiden-network/raiden-contracts/pull/979) Start accepting zero as the secret.
+
+## [0.19.1](https://github.com/raiden-network/raiden-contracts/releases/tag/v0.19.1) - 2019-05-14
+
+- [#973](https://github.com/raiden-network/raiden-contracts/pull/973) Stop forcing a development-time dependency during the usual installation
+
+## [0.19.0](https://github.com/raiden-network/raiden-contracts/releases/tag/v0.19.0) - 2019-05-09
+
+- [#909](https://github.com/raiden-network/raiden-contracts/pull/909) MonitoringService prioritizes services
+- [#853](https://github.com/raiden-network/raiden-contracts/pull/853) add chain_id in the IOU claims for OneToN
+- [#928](https://github.com/raiden-network/raiden-contracts/pull/928) [#956](https://github.com/raiden-network/raiden-contracts/pull/956) black formatter is enabled
+- [#896](https://github.com/raiden-network/raiden-contracts/pull/896) [#941](https://github.com/raiden-network/raiden-contracts/pull/941) Some Python code cleanup
+- [#867](https://github.com/raiden-network/raiden-contracts/pull/867) get_contracts_deployment_info() returns None instead of raising a ValueError when no deployment file is found.
+- [#863](https://github.com/raiden-network/raiden-contracts/pull/863) Deploy 0.4.0 version on Goerli
+
+## [0.18.0](https://github.com/raiden-network/raiden-contracts/releases/tag/v0.18.0) - 2019-04-12
+
+- [#831](https://github.com/raiden-network/raiden-contracts/pull/831) Add contracts_version=0.11.1 that includes Görli deployment
+
+## [0.17.2](https://github.com/raiden-network/raiden-contracts/releases/tag/v0.17.2) - 2019-04-06
+
+- [#813](https://github.com/raiden-network/raiden-contracts/pull/813) expose mypy type checking results to the other packages.
+
+## [0.17.1](https://github.com/raiden-network/raiden-contracts/releases/tag/v0.17.1) - 2019-04-02
+
+- [#809](https://github.com/raiden-network/raiden-contracts/pull/809) fix a bug in `get_contracts_deployment_info()`.
+
+## [0.17.0](https://github.com/raiden-network/raiden-contracts/releases/tag/v0.17.0) - 2019-03-27
+
+- [#711](https://github.com/raiden-network/raiden-contracts/pull/711) Re-enable setTotalWithdraw() function of TokenNetwork contract.
+- [#788](https://github.com/raiden-network/raiden-contracts/pull/788) Fix a bug that prevented deploying 0.3._ TokenNetworks
+- [#785](https://github.com/raiden-network/raiden-contracts/pull/785) Require click>=7.0
+
+## [0.16.0](https://github.com/raiden-network/raiden-contracts/releases/tag/v0.16.0) - 2019-03-26
+
+- [#775](https://github.com/raiden-network/raiden-contracts/pull/775) Added contract_manager.get_contracts_deployed_info() that takes a module (`SERVICES`, `RAIDEN` or `ALL`) instead of `services:bool`
+- [#775](https://github.com/raiden-network/raiden-contracts/pull/775) Deprecated get_contracts_deployed() whose name sounded wrong and that had to be called twice.
+- [#755](https://github.com/raiden-network/raiden-contracts/pull/755) deploy script does not take --registry option anymore.  Use --token-network-registry instead.
+
+## [0.15.0](https://github.com/raiden-network/raiden-contracts/releases/tag/v0.15.0) - 2019-03-19
+
+- [#749](https://github.com/raiden-network/raiden-contracts/pull/749) Fixed the problem where Monitoring Services were rewarded too late
+- [#741](https://github.com/raiden-network/raiden-contracts/pull/741) Removed raiden_contracts/contracts. Instead, please edit raiden_contracts/data/source directly.
+
+## [0.14.0](https://github.com/raiden-network/raiden-contracts/releases/tag/v0.14.0) - 2019-03-11
+
+- [#720](https://github.com/raiden-network/raiden-contracts/pull/720) Removed checks in MonitoringService.canMonitor() until the design is determined.
+- [#696](https://github.com/raiden-network/raiden-contracts/pull/696) ContractManager created with version=None has contracts_version == None
+- [#678](https://github.com/raiden-network/raiden-contracts/pull/678) Add a deployment-time configurable limit on the whole balance of UserDeposit
+- [#678](https://github.com/raiden-network/raiden-contracts/pull/678) Deployment script's `service` command takes an additional option `--user-deposit-whole-limit`
+
+## [0.13.0](https://github.com/raiden-network/raiden-contracts/releases/tag/v0.13.0) - 2019-03-04
+
+- [#655](https://github.com/raiden-network/raiden-contracts/pull/655) Deployment script's `register` command takes two additional options --channel-participant-deposit-limit and --token-network-deposit-limit
+- [#655](https://github.com/raiden-network/raiden-contracts/pull/655) TokenNetworkRegistry's createERC20TokenNetwork() function takes two additional arguments `_channel_participant_deposit_limit` and `_token_network_deposit_limit`.
+- [#655](https://github.com/raiden-network/raiden-contracts/pull/655) TokenNetwork's constructor takes two additional arguments `_channel_participant_deposit_limit` and `_token_network_deposit_limit`
+- [#652](https://github.com/raiden-network/raiden-contracts/pull/652) TokenNetworkRegistry's constructor takes an additional argument `max_number_of_token_networks`
+- [#651](https://github.com/raiden-network/raiden-contracts/pull/651) Removed flavors
+
+## [0.12.0](https://github.com/raiden-network/raiden-contracts/releases/tag/v0.12.0) - 2019-02-28
+
+- Add data/gas.json that contains gas measurements on the development version.
+- Move Raiden contracts to "raiden" subdir, so that the imports match the directory layout.
+- `contracts_data_path`, `contracts_precompiled_path` and `contracts_gas_path` require an additional `flavor` argument (either `Flavor.Limited` or `Flavor.Unlimited`).
+- Started providing Solidity sources next to the deployment data in `raiden_contracts/data`
+
+## [0.11.0](https://github.com/raiden-network/raiden-contracts/releases/tag/v0.11.0) - 2019-02-14
+
+- Deployed on testnets with a new fake token for service payments.
+
 ## [0.10.1](https://github.com/raiden-network/raiden-contracts/releases/tag/v0.10.1) - 2019-02-13
 
 - [#557](https://github.com/raiden-network/raiden-contracts/pull/557) Revert the new gas measurements

@@ -8,7 +8,7 @@ For solidity we generally follow the style guide as shown in the [solidity
 documentation](http://solidity.readthedocs.io/en/develop/style-guide.html) with
 some exceptions:
 
-**Variable Names**
+#### Variable Names
 
 All variable name should be in snake case, just like in python. Function names
 on the other hand should be mixedCase. MixedCase is essentially like CamelCase
@@ -22,6 +22,34 @@ function iDoSomething(uint awesome_argument) {
 }
 ```
 
+#### Reentrance Problems
+
+Calls into other contracts might call back into our contract.
+This causes problems when storage accesses and an external call interleave.  For example,
+
+```js
+   check(storage[address])
+   other_contract.method()
+   storage[address] = new_value
+```
+
+possibly has a bug, where an attacker can set up `other_contract.method()` so that it calls back into this piece of code.
+Then, the `check()` still sees an old value.
+
+#### assert() and require()
+
+When you write Solidity code, be aware of the distinction between ``assert(cond)`` and ``require(cond)``.
+
+``assert(cond)`` and ``require(cond)`` both cause a failure in the EVM execution when ``cond`` evaluates to 0.  They use different EVM opcodes that cause different gas consumptions.  More importantly, a convention dictates when to use which.  Use ``assert(cond)`` only when you are confident that ``cond`` is always true.  When an ``assert`` fires, that's considered as a bug in the Solidity program (or the Solidity compiler).  For detecting invalid user inputs or invalid return values from other contracts, use ``require()``.
+
+#### Resources
+
+* [Solidity documentation](https://solidity.readthedocs.io/) usually has an answer somewhere.
+    * Also keep an eye of [upcoming changes](https://github.com/ethereum/solidity/projects).
+* [Remix](http://remix.ethereum.org/) allows step-execute a transaction.
+* [(Not So) Smart Contracts](https://github.com/trailofbits/not-so-smart-contracts) contains examples of common vulnerabilities.
+* [Awesome Ethereum Security](https://github.com/trailofbits/awesome-ethereum-security) contains relevant links.
+
 ### Python
 
 This repository follows the same guidelines as the Raiden Client, regarding the Python code used in tests and scripts: https://github.com/raiden-network/raiden/blob/master/CONTRIBUTING.md#coding-style.
@@ -29,7 +57,7 @@ This repository follows the same guidelines as the Raiden Client, regarding the 
 ## Making a Pull-Request
 
 * If you're fixing a bug or adding a feature, add an entry to CHANGELOG.md.
-* If you've changed a Solidity source, run `make compile_contracts` and add the resulting `contracts.json` in the PR.
+* If you've changed a Solidity source, run `make compile_contracts` and add the resulting `raiden_contracts/data/contracts.json` in the PR.
 * If you're changing documentation only, add `[skip ci]` in the commit message so Travis does not waste time.
     * But, if you've changed comments in a Solidity source, do not add `[skip ci]` and let Travis check the hash of the source.
 * Add type annotations (especially on function arguments).
@@ -43,10 +71,10 @@ Read our [Test Guide](./raiden_contracts/tests/README.md)
 ### Location
 
 Currently, our setup is:
-- for core contracts: `./raiden_contracts/contracts`
-- for 3rd party services: `./raiden_contracts/contracts/services`
-- libraries: `./raiden_contracts/contracts/lib`
-- non-production test contracts: `./raiden_contracts/contracts/test`
+- for core contracts: `./raiden_contracts/data/source/raiden`
+- for 3rd party services: `./raiden_contracts/data/source/services`
+- libraries: `./raiden_contracts/data/source/lib`
+- non-production test contracts: `./raiden_contracts/data/source/test`
 
 ### Constants
 

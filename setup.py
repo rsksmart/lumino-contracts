@@ -12,7 +12,7 @@ from setuptools.command.build_py import build_py
 
 
 DESCRIPTION = 'Raiden contracts library and utilities'
-VERSION = '0.10.1'
+VERSION = '0.20.0'
 
 
 def read_requirements(path: str) -> List[str]:
@@ -46,11 +46,13 @@ class VerifyContracts(Command):
 
     def run(self):
         from raiden_contracts.contract_manager import (
-            ContractManager,
             contracts_precompiled_path,
+        )
+        from raiden_contracts.contract_source_manager import (
+            ContractSourceManager,
             contracts_source_path,
         )
-        manager = ContractManager(contracts_source_path())
+        manager = ContractSourceManager(contracts_source_path())
         manager.checksum_contracts()
         manager.verify_precompiled_checksums(contracts_precompiled_path())
 
@@ -66,18 +68,19 @@ class CompileContracts(Command):
         pass
 
     def run(self):
-        from raiden_contracts.contract_manager import (
-            ContractManager,
-            contracts_precompiled_path,
+        from raiden_contracts.contract_manager import contracts_precompiled_path
+        from raiden_contracts.contract_source_manager import (
+            ContractSourceManager,
             contracts_source_path,
         )
 
-        contract_manager = ContractManager(contracts_source_path())
-        contract_manager.compile_contracts(contracts_precompiled_path()
-        )
+        contract_manager = ContractSourceManager(contracts_source_path())
+        contract_manager.compile_contracts(contracts_precompiled_path())
 
 
 requirements = read_requirements('requirements.txt')
+
+
 
 config = {
     'version': VERSION,
@@ -111,6 +114,6 @@ config = {
         'build_py': BuildPyCommand,
     },
     'zip_safe': False,
+    'package_data': {"lumino_contracts": ["py.typed"]},
 }
-
 setup(**config)
