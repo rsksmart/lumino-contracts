@@ -1,295 +1,251 @@
-import hashlib
+"""ContractManager knows binaries and ABI of contracts."""
 import json
-import logging
+from copy import deepcopy
 from json import JSONDecodeError
-from os import chdir
 from pathlib import Path
-from typing import Dict, Union, Optional
+from typing import Any, Dict, List, Optional
 
-from solc import compile_files, get_solc_version
-import semantic_version
-import warnings
-from raiden_contracts.constants import (
-    CONTRACTS_VERSION,
-    ID_TO_NETWORKNAME,
-    PRECOMPILED_DATA_FIELDS,
-)
+from eth_typing.evm import HexAddress
+from mypy_extensions import TypedDict
+from semver import compare
 
-
-log = logging.getLogger(__name__)
+from raiden_contracts.constants import CONTRACTS_VERSION, ID_TO_NETWORKNAME, DeploymentModule
 
 _BASE = Path(__file__).parent
 
 
-class ContractManagerCompilationError(RuntimeError):
-    pass
+# Classes for static type checking of deployed_contracts dictionary.
+
+
+CompiledContract = TypedDict(
+    "CompiledContract",
+    {"abi": List[Dict[str, Any]], "bin-runtime": str, "bin": str, "metadata": str},
+)
+
+
+DeployedContract = TypedDict(
+    "DeployedContract",
+    {
+        "address": HexAddress,
+        "transaction_hash": str,
+        "block_number": int,
+        "gas_cost": int,
+        "constructor_arguments": List[Any],
+    },
+)
+
+
+class DeployedContracts(TypedDict):
+    chain_id: int
+    contracts: Dict[str, DeployedContract]
+    contracts_version: str
 
 
 class ContractManagerLoadError(RuntimeError):
-    pass
-
-
-class ContractManagerVerificationError(RuntimeError):
-    pass
+    """Failure in loading contracts.json."""
 
 
 class ContractManager:
-    def __init__(self, path: Union[Path, Dict[str, Path]]) -> None:
+    """ ContractManager holds compiled contracts of the same version
+
+    Provides access to the ABI and the bytecode.
+    """
+
+    def __init__(self, path: Path) -> None:
         """Params:
-            path: either path to a precompiled contract JSON file, or a list of
-                directories which contain solidity files to compile
+            path: path to a precompiled contract JSON file,
         """
-        self.contracts_source_dirs: Optional[Dict[str, Path]] = None
-        self.contracts: Dict[str, Dict] = dict()
         self.overall_checksum = None
         self.contracts_checksums: Optional[Dict[str, str]] = None
-        if isinstance(path, dict):
-            self.contracts_source_dirs = path
-            self.contracts_version = CONTRACTS_VERSION
-        elif isinstance(path, Path):
-            if path.is_dir():
-                ContractManager.__init__(self, {'smart_contracts': path})
-            else:
-                try:
-                    with path.open() as precompiled_file:
-                        precompiled_content = json.load(precompiled_file)
-                except (JSONDecodeError, UnicodeDecodeError) as ex:
-                    raise ContractManagerLoadError(
-                        f"Can't load precompiled smart contracts: {ex}",
-                    ) from ex
-                try:
-                    self.contracts = precompiled_content['contracts']
-                    self.overall_checksum = precompiled_content['overall_checksum']
-                    self.contracts_checksums = precompiled_content['contracts_checksums']
-                    self.contracts_version = precompiled_content['contracts_version']
-                except KeyError as ex:
-                    raise ContractManagerLoadError(
-                        f'Precompiled contracts json has unexpected format: {ex}',
-                    ) from ex
-        else:
-            raise TypeError('`path` must be either `Path` or `dict`')
-
-    def _compile_all_contracts(self) -> None:
-        """
-        Compile solidity contracts into ABI and BIN. This requires solc somewhere in the $PATH
-        and also the :ref:`ethereum.tools` python library.
-        """
-        if self.contracts_source_dirs is None:
-            raise TypeError("Missing contracts source path, can't compile contracts.")
-
-        # Raise an error if solc version goes down.
-        self.compare_old_solc_version()
-
-        old_working_dir = Path.cwd()
-        chdir(_BASE)
-
-        def relativise(path):
-            return path.relative_to(_BASE)
-        import_dir_map = [
-            '%s=%s' % (k, relativise(v))
-            for k, v in self.contracts_source_dirs.items()
-        ]
         try:
-            for contracts_dir in self.contracts_source_dirs.values():
-                res = compile_files(
-                    [str(relativise(file)) for file in contracts_dir.glob('*.sol')],
-                    output_values=PRECOMPILED_DATA_FIELDS + ['ast'],
-                    import_remappings=import_dir_map,
-                    optimize=False,
+            with path.open() as precompiled_file:
+                precompiled_content = json.load(precompiled_file)
+        except (JSONDecodeError, UnicodeDecodeError) as ex:
+            raise ContractManagerLoadError(f"Can't load precompiled smart contracts: {ex}") from ex
+        try:
+            self.contracts: Dict[str, CompiledContract] = precompiled_content["contracts"]
+            if not self.contracts:
+                raise RuntimeError(
+                    f"Cannot find precompiled contracts data in the JSON file {path}."
                 )
-
-                # Strip `ast` part from result
-                # TODO: Remove after https://github.com/ethereum/py-solc/issues/56 is fixed
-                res = {
-                    contract_name: {
-                        content_key: content_value
-                        for content_key, content_value in contract_content.items()
-                        if content_key != 'ast'
-                    } for contract_name, contract_content in res.items()
-                }
-                self.contracts.update(_fix_contract_key_names(res))
-        except FileNotFoundError as ex:
-            raise ContractManagerCompilationError(
-                'Could not compile the contract. Check that solc is available.',
-            ) from ex
-        finally:
-            chdir(old_working_dir)
-
-    def compare_old_solc_version(self) -> None:
-        """ Raise an error if solc version goes down. """
-        try:
-            current_solc_version = get_solc_version()
-        except FileNotFoundError as ex:
-            raise ContractManagerCompilationError(
-                'Could not compile the contract. Check that solc is available.',
+            self.overall_checksum = precompiled_content["overall_checksum"]
+            self.contracts_checksums = precompiled_content["contracts_checksums"]
+            self.contracts_version = precompiled_content["contracts_version"]
+        except KeyError as ex:
+            raise ContractManagerLoadError(
+                f"Precompiled contracts json has unexpected format: {ex}"
             ) from ex
 
-        precompiled_path = contracts_precompiled_path(self.contracts_version)
-        if not precompiled_path.exists():
-            warnings.warn(
-                f'Skip comparing solc versions to make sure no downgrade happened.'
-                f'No precompiled data file found in {precompiled_path}.',
-            )
-            return
-
-        precompiled_manager = ContractManager(precompiled_path)
-        for contract_name in precompiled_manager.contracts:
-            try:
-                metadata = json.loads(precompiled_manager.contracts[contract_name]['metadata'])
-                old_version = semantic_version.Version(metadata['compiler']['version'])
-
-                if current_solc_version < old_version:
-                    raise ContractManagerCompilationError(
-                        f'Solc version went down. '
-                        f'Current version is {current_solc_version}, '
-                        f'old version was {old_version}. If you really want to do this,'
-                        f'delete the old precompiled data file from {precompiled_path}',
-                    )
-            except (JSONDecodeError, UnicodeDecodeError) as ex:
-                warnings.warn(
-                    f'Comparing old solc version with new one. '
-                    f'Cannot load precompiled smart contract metadata from {contract_name}. '
-                    f'Do not panic, it probably does not exist. {ex}',
-                )
-
-    def compile_contracts(self, target_path: Path) -> None:
-        """ Store compiled contracts JSON at `target_path`. """
-        if self.contracts_source_dirs is None:
-            raise TypeError("Already using stored contracts.")
-
-        self.checksum_contracts()
-
-        if self.overall_checksum is None:
-            raise ContractManagerCompilationError("Checksumming failed.")
-
-        if not self.contracts:
-            self._compile_all_contracts()
-
-        target_path.parent.mkdir(parents=True, exist_ok=True)
-        with target_path.open(mode='w') as target_file:
-            target_file.write(
-                json.dumps(
-                    dict(
-                        contracts=self.contracts,
-                        contracts_checksums=self.contracts_checksums,
-                        overall_checksum=self.overall_checksum,
-                        contracts_version=self.contracts_version,
-                    ),
-                ),
-            )
-
-    def get_contract(self, contract_name: str) -> Dict:
+    def get_contract(self, contract_name: str) -> CompiledContract:
         """ Return ABI, BIN of the given contract. """
-        if not self.contracts:
-            self._compile_all_contracts()
-        return self.contracts[contract_name]
+        assert self.contracts, "ContractManager should have contracts compiled"
+        try:
+            return self.contracts[contract_name]
+        except KeyError:
+            raise KeyError(
+                f"contracts_version {self.contracts_version} does not have {contract_name}"
+            )
 
-    def get_contract_abi(self, contract_name: str) -> Dict:
+    def get_contract_abi(self, contract_name: str) -> List[Dict[str, Any]]:
         """ Returns the ABI for a given contract. """
-        if not self.contracts:
-            self._compile_all_contracts()
-        return self.contracts[contract_name]['abi']
+        assert self.contracts, "ContractManager should have contracts compiled"
+        return self.contracts[contract_name]["abi"]
 
-    def get_event_abi(self, contract_name: str, event_name: str) -> Dict:
+    def get_event_abi(self, contract_name: str, event_name: str) -> Dict[str, Any]:
         """ Returns the ABI for a given event. """
         # Import locally to avoid web3 dependency during installation via `compile_contracts`
         from web3.utils.contracts import find_matching_event_abi
 
-        if not self.contracts:
-            self._compile_all_contracts()
+        assert self.contracts, "ContractManager should have contracts compiled"
         contract_abi = self.get_contract_abi(contract_name)
-        return find_matching_event_abi(contract_abi, event_name)
+        return find_matching_event_abi(abi=contract_abi, event_name=event_name)
 
-    def checksum_contracts(self) -> None:
-        if self.contracts_source_dirs is None:
-            raise TypeError("Missing contracts source path, can't checksum contracts.")
+    def get_constructor_argument_types(self, contract_name: str) -> List:
+        abi = self.get_contract_abi(contract_name=contract_name)
+        constructor = [f for f in abi if f["type"] == "constructor"][0]
+        return [arg["type"] for arg in constructor["inputs"]]
 
-        checksums: Dict[str, str] = {}
-        for contracts_dir in self.contracts_source_dirs.values():
-            file: Path
-            for file in contracts_dir.glob('*.sol'):
-                checksums[file.name] = hashlib.sha256(file.read_bytes()).hexdigest()
+    @property
+    def version_string(self) -> str:
+        """Return a flavored version string."""
+        return contract_version_string(self.contracts_version)
 
-        self.overall_checksum = hashlib.sha256(
-            ':'.join(checksums[key] for key in sorted(checksums)).encode(),
-        ).hexdigest()
-        self.contracts_checksums = checksums
+    def get_runtime_hexcode(self, contract_name: str) -> str:
+        """ Calculate the runtime hexcode with 0x prefix.
 
-    def verify_precompiled_checksums(self, contracts_precompiled_path: Path) -> None:
-        """ Compare source code checksums with those from a precompiled file. """
-
-        # We get the precompiled file data
-        contracts_precompiled = ContractManager(contracts_precompiled_path)
-
-        # Silence mypy
-        assert self.contracts_checksums is not None
-
-        # Compare each contract source code checksum with the one from the precompiled file
-        for contract, checksum in self.contracts_checksums.items():
-            try:
-                # Silence mypy
-                assert contracts_precompiled.contracts_checksums is not None
-                precompiled_checksum = contracts_precompiled.contracts_checksums[contract]
-            except KeyError:
-                raise ContractManagerVerificationError(
-                    f'No checksum for {contract}',
-                )
-            if precompiled_checksum != checksum:
-                raise ContractManagerVerificationError(
-                    f'checksum of {contract} does not match {precompiled_checksum} != {checksum}',
-                )
-
-        # Compare the overall source code checksum with the one from the precompiled file
-        if self.overall_checksum != contracts_precompiled.overall_checksum:
-            raise ContractManagerVerificationError(
-                f'overall checksum does not match '
-                f'{self.overall_checksum} != {contracts_precompiled.overall_checksum}',
-            )
+        Parameters:
+            contract_name: name of the contract such as CONTRACT_TOKEN_NETWORK
+        """
+        return "0x" + self.contracts[contract_name]["bin-runtime"]
 
 
-def contracts_source_path():
-    return {
-        'raiden': _BASE.joinpath('contracts'),
-        'test': _BASE.joinpath('contracts', 'test'),
-        'services': _BASE.joinpath('contracts', 'services'),
-    }
+def contract_version_string(version: Optional[str] = None) -> str:
+    """ The version string that should be found in the Solidity source """
+    if version is None:
+        version = CONTRACTS_VERSION
+    return version
 
 
-def contracts_data_path(version: Optional[str] = None):
-    if version is None or version == CONTRACTS_VERSION:
-        return _BASE.joinpath('data')
-    else:
-        return _BASE.joinpath(f'data_{version}')
+def contracts_data_path(version: Optional[str] = None) -> Path:
+    """Returns the deployment data directory for a version."""
+    if version is None:
+        return _BASE.joinpath("data")
+    return _BASE.joinpath(f"data_{version}")
 
 
-def contracts_precompiled_path(version: Optional[str] = None):
+def contracts_precompiled_path(version: Optional[str] = None) -> Path:
+    """Returns the path of JSON file where the bytecode can be found."""
     data_path = contracts_data_path(version)
-    return data_path.joinpath('contracts.json')
+    return data_path.joinpath("contracts.json")
 
 
-def contracts_deployed_path(chain_id: int, version: Optional[str] = None, services: bool = False):
+def contracts_gas_path(version: Optional[str] = None) -> Any:
+    """Returns the path of JSON file where the gas usage information can be found."""
     data_path = contracts_data_path(version)
-    chain_name = ID_TO_NETWORKNAME[chain_id] if chain_id in ID_TO_NETWORKNAME else 'private_net'
+    return data_path.joinpath("gas.json")
+
+
+def contracts_deployed_path(
+    chain_id: int, version: Optional[str] = None, services: bool = False
+) -> Path:
+    """Returns the path of the deplolyment data JSON file."""
+    data_path = contracts_data_path(version)
+    chain_name = ID_TO_NETWORKNAME[chain_id] if chain_id in ID_TO_NETWORKNAME else "private_net"
 
     return data_path.joinpath(f'deployment_{"services_" if services else ""}{chain_name}.json')
 
 
-def get_contracts_deployed(chain_id: int, version: Optional[str] = None, services: bool = False):
-    deployment_file_path = contracts_deployed_path(chain_id, version, services)
+def merge_deployment_data(dict1: DeployedContracts, dict2: DeployedContracts) -> DeployedContracts:
+    """ Take contents of two deployment JSON files and merge them
 
-    try:
-        with deployment_file_path.open() as deployment_file:
-            deployment_data = json.load(deployment_file)
-    except (JSONDecodeError, UnicodeDecodeError, FileNotFoundError) as ex:
-        raise ValueError(f'Cannot load deployment data file: {ex}') from ex
+    The dictionary under 'contracts' key will be merged. The 'contracts'
+    contents from different JSON files must not overlap. The contents
+    under other keys must be identical.
+    """
+    if not dict1:
+        return dict2
+    if not dict2:
+        return dict1
+    common_contracts: Dict[str, DeployedContract] = deepcopy(dict1["contracts"])
+    assert not common_contracts.keys() & dict2["contracts"].keys()
+    common_contracts.update(dict2["contracts"])
+
+    assert dict2["chain_id"] == dict1["chain_id"]
+    assert dict2["contracts_version"] == dict1["contracts_version"]
+
+    return {
+        "contracts": common_contracts,
+        "chain_id": dict1["chain_id"],
+        "contracts_version": dict1["contracts_version"],
+    }
+
+
+def version_provides_services(version: Optional[str]) -> bool:
+    if version is None:
+        return True
+    if version == "0.3._":
+        return False
+    if version == "0.8.0_unlimited":
+        return True
+    return compare(version, "0.8.0") >= 0
+
+
+def get_contracts_deployment_info(
+    chain_id: int, version: Optional[str] = None, module: DeploymentModule = DeploymentModule.ALL
+) -> Optional[DeployedContracts]:
+    """Reads the deployment data. Returns None if the file is not found.
+
+    Parameter:
+        module The name of the module. ALL means deployed contracts from all modules that are
+        available for the version.
+    """
+    if module not in DeploymentModule:
+        raise ValueError(f"Unknown module {module} given to get_contracts_deployment_info()")
+
+    def module_chosen(to_be_added: DeploymentModule) -> bool:
+        return module == to_be_added or module == DeploymentModule.ALL
+
+    files: List[Path] = []
+
+    if module_chosen(DeploymentModule.RAIDEN):
+        files.append(contracts_deployed_path(chain_id=chain_id, version=version, services=False))
+
+    if module == DeploymentModule.SERVICES and not version_provides_services(version):
+        raise ValueError(
+            f"SERVICES module queried for version {version}, but {version} "
+            "does not provide service contracts."
+        )
+
+    if module_chosen(DeploymentModule.SERVICES) and version_provides_services(version):
+        files.append(contracts_deployed_path(chain_id=chain_id, version=version, services=True))
+
+    deployment_data: DeployedContracts = {}  # type: ignore
+
+    for f in files:
+        j = _load_json_from_path(f)
+        if j is None:
+            continue
+        deployment_data = merge_deployment_data(
+            deployment_data,
+            DeployedContracts(
+                {
+                    "chain_id": j["chain_id"],
+                    "contracts": j["contracts"],
+                    "contracts_version": j["contracts_version"],
+                }
+            ),
+        )
+
+    if not deployment_data:
+        deployment_data = None
     return deployment_data
 
 
-def _fix_contract_key_names(input: Dict) -> Dict:
-    result = {}
-
-    for k, v in input.items():
-        name = k.split(':')[1]
-        result[name] = v
-
-    return result
+def _load_json_from_path(f: Path) -> Optional[Dict[str, Any]]:
+    try:
+        with f.open() as deployment_file:
+            return json.load(deployment_file)
+    except FileNotFoundError:
+        return None
+    except (JSONDecodeError, UnicodeDecodeError) as ex:
+        raise ValueError(f"Deployment data file is corrupted: {ex}") from ex
