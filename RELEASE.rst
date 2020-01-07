@@ -4,10 +4,14 @@ Release Process Document
 Package Deliverables
 ^^^^^^^^^^^^^^^^^^^^
 
-- smart contracts source code from ``raiden_contracts/contracts``
-- compiled contracts data from ``raiden_contracts/data/contracts.json``
-- deployment information from ``raiden_contracts/data/deployment_*.json``, with Ethereum addresses, transaction data (transaction hash, block number, constructor arguments, gas cost)
-- gas costs information from ``raiden_contracts/constants.py``
+For each contract version ``x.y.z``, deliverables are located in ``raiden_contracts/data_x.y.z``.  For the version currently under development, deliverables are located in ``raiden_contracts/data``
+
+Deliverables:
+
+- smart contracts source code from ``raiden_contracts/data*/source``
+- compiled contracts data from ``raiden_contracts/data*/contracts.json``
+- deployment information from ``raiden_contracts/data*/deployment_*.json``, with Ethereum addresses, transaction data (transaction hash, block number, constructor arguments, gas cost)
+- gas costs information from ``raiden_contracts/data*/gas.json``
 - scripts for deployment & contract verification on Etherscan from ``raiden_contracts/deploy``
 - source code tests from ``raiden_contracts/tests``
 
@@ -22,8 +26,10 @@ When we want to release another version of the ``raiden-contracts`` package, we 
    #. `Bump the version on the smart contracts <bump-contracts>`_
    #. `Deploy smart contracts <_deploy-contracts>`_ on all the supported chains and overwrite ``deployment_*,json`` files with the new deployment data.
    #. `Verify the deployed smart contracts on Etherscan <verify-contracts>`_
-   #. `Measure Gas Costs <measure-gas>`_ and update ``constants.py``
+   #. `Measure Gas Costs <measure-gas>`_
+   #. `Create a new data directory <create-new-dir>`_
 
+#. `Update Changelog <change-changelog>`_
 #. `Bump the package version <bump-package>`_
 #. `Release the new package version <_release-package>`_
 
@@ -68,7 +74,7 @@ Bump Smart Contracts Version
 
 * The script changes the version located here:
   * ``CONTRACTS_VERSION`` https://github.com/raiden-network/raiden-contracts/blob/9fd2124eb648a629aee886f37ade5e502431371f/raiden_contracts/constants.py#L4
-  * each ``contract_version`` constant from each contract source. E.g. https://github.com/raiden-network/raiden-contracts/blob/9fd2124eb648a629aee886f37ade5e502431371f/raiden_contracts/contracts/TokenNetwork.sol#L14
+  * This string will be filled in the contract templates.
 * We are currently at a ``0.*`` version. Our first ``major`` bump will be made when a stable, not-limited version will be released on the main net.
 * ``minor`` bumps (for now) are made for contract ABI changes.
 * ``patch`` bumps are made for any fix that does not touch the ABI.
@@ -84,6 +90,7 @@ We currently deploy on:
 * Ropsten - for all releases
 * Rinkeby - for all releases
 * Kovan - for all releases
+* Görli - for all releases
 * Mainnet - only for pre-major or major releases
 
 
@@ -113,19 +120,26 @@ Note that we currently have some issues with the script: https://github.com/raid
 Measure Gas Costs
 -----------------
 
-``raiden_contracts`` package provides `some constants <https://github.com/raiden-network/raiden-contracts/blob/de13cf9aa7ad7ed230ff204e47103def6a14b0be/raiden_contracts/constants.py#L35>`__ showing the amount of gas that each operation requires. This information is manually updated. The amounts can be measured with a script
+``raiden_contracts`` package provides ``data/gas.json`` showing the amount of gas that each operation requires. A ``pytest`` execution updates the JSON file:
 
 ::
 
-    pytest -s raiden_contracts/tests/test_print_gas.py
+    pytest raiden_contracts/tests/test_print_gas.py
 
-The script prints many numbers like
+.. _create-new-dir
 
-::
-    ----------------------------------
-    GAS USED TokenNetwork.unlock 6 locks 66019
-    ----------------------------------
+Create a New Data Directory
+---------------------------
 
+Copy ``data`` directory into ``data_x.y.z`` where ``x.y.z`` is the contract version.  Also, edit ``data_x.y.z/contracts.json`` to change ``contracts_version`` from ``null`` to ``x.y.z``.
+
+.. _change-changelog:
+
+Change the Versions of CHANGELOG.md
+-----------------------------------
+
+* Make sure all significant changes from the last release are listed.
+* Turn the existing ``Unreleased`` section into a new release section.
 
 .. _bump-package:
 
@@ -147,14 +161,6 @@ Before bumping the package version, ``git add`` the deployment data at ``data/de
 * ``patch`` bumps are made for any other fix
 
 This command triggers a commit and a local tag is created. A PR must be made with the commit changes.
-
-.. _change-changelog:
-
-Change the Versions of CHANGELOG.md
------------------------------------
-
-* Make sure all significant changes from the last release are listed.
-* Turn the existing ``Unreleased`` section into a new release section.
 
 .. _release-package:
 

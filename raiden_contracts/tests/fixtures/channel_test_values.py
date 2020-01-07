@@ -1,5 +1,4 @@
-from raiden_contracts.tests.utils import MAX_UINT256, ChannelValues
-
+from raiden_contracts.tests.utils import MAX_UINT256, ChannelValues, LockedAmounts
 
 # We must cover the edge cases documented in
 # https://github.com/raiden-network/raiden-contracts/issues/188
@@ -16,40 +15,31 @@ from raiden_contracts.tests.utils import MAX_UINT256, ChannelValues
 # where he provides a `valid last` balance proof.
 channel_settle_test_values = [
     {
-        'valid_last': (
+        "valid_last": (
             ChannelValues(
                 deposit=35,
                 withdrawn=5,
                 transferred=20020,
-                claimable_locked=3,
-                unclaimable_locked=1,
+                locked_amounts=LockedAmounts(claimable_locked=3, unclaimable_locked=1),
             ),
             ChannelValues(
                 deposit=40,
                 withdrawn=10,
                 transferred=20030,
-                claimable_locked=4,
-                unclaimable_locked=2,
+                locked_amounts=LockedAmounts(claimable_locked=4, unclaimable_locked=2),
             ),
         ),
         # participant2 provides a valid but old balance proof of participant1
-        'old_last': [
+        "old_last": [
             # participant2 does not send participant1's balance proof
-            ChannelValues(
-                deposit=35,
-                withdrawn=5,
-                transferred=0,
-                claimable_locked=0,
-                unclaimable_locked=0,
-            ),
+            ChannelValues(deposit=35, withdrawn=5, transferred=0, locked_amounts=LockedAmounts()),
             # participant2 provides an old participant1 balance proof with a smaller
             # transferred amount
             ChannelValues(
                 deposit=35,
                 withdrawn=5,
                 transferred=10000,
-                claimable_locked=3,
-                unclaimable_locked=1,
+                locked_amounts=LockedAmounts(claimable_locked=3, unclaimable_locked=1),
             ),
             # participant2 provides an old participant1 balance proof with a smaller
             # claimable locked amount
@@ -57,8 +47,7 @@ channel_settle_test_values = [
                 deposit=35,
                 withdrawn=5,
                 transferred=20020,
-                claimable_locked=0,
-                unclaimable_locked=1,
+                locked_amounts=LockedAmounts(claimable_locked=0, unclaimable_locked=1),
             ),
             # participant2 provides an old participant1 balance proof with a smaller
             # unclaimable locked amount
@@ -66,8 +55,7 @@ channel_settle_test_values = [
                 deposit=35,
                 withdrawn=5,
                 transferred=20020,
-                claimable_locked=3,
-                unclaimable_locked=0,
+                locked_amounts=LockedAmounts(claimable_locked=3, unclaimable_locked=0),
             ),
             # participant2 provides an old participant1 balance proof with a smaller transferred
             # & claimable locked amount
@@ -75,16 +63,14 @@ channel_settle_test_values = [
                 deposit=35,
                 withdrawn=5,
                 transferred=10000,
-                claimable_locked=0,
-                unclaimable_locked=1,
+                locked_amounts=LockedAmounts(claimable_locked=0, unclaimable_locked=1),
             ),
             # participant2 provides an old participant1 balance proof will all values smaller
             ChannelValues(
                 deposit=35,
                 withdrawn=5,
                 transferred=10000,
-                claimable_locked=0,
-                unclaimable_locked=0,
+                locked_amounts=LockedAmounts(claimable_locked=0, unclaimable_locked=0),
             ),
             # participant2 provides an old participant1 balance proof, but with the same
             # transferred + claimable_locked
@@ -95,8 +81,7 @@ channel_settle_test_values = [
                 deposit=35,
                 withdrawn=5,
                 transferred=20006,
-                claimable_locked=17,
-                unclaimable_locked=1,
+                locked_amounts=LockedAmounts(claimable_locked=17, unclaimable_locked=1),
             ),
             # participant2 provides an old participant1 balance proof, with a higher
             # unclaimable locked amount can happen if expired transfers are removed
@@ -105,8 +90,7 @@ channel_settle_test_values = [
                 deposit=35,
                 withdrawn=5,
                 transferred=20020,
-                claimable_locked=3,
-                unclaimable_locked=12,
+                locked_amounts=LockedAmounts(claimable_locked=3, unclaimable_locked=12),
             ),
             # participant2 provides an old participant1 balance proof with a higher
             # claimable locked amount, but lower transferred + claimable_locked
@@ -117,8 +101,7 @@ channel_settle_test_values = [
                 deposit=35,
                 withdrawn=5,
                 transferred=10020,
-                claimable_locked=17,
-                unclaimable_locked=1,
+                locked_amounts=LockedAmounts(claimable_locked=17, unclaimable_locked=1),
             ),
             # participant2 provides an old participant1 balance proof with a higher
             # unclaimable locked amount and a higher claimable locked amount but lower
@@ -127,22 +110,20 @@ channel_settle_test_values = [
                 deposit=35,
                 withdrawn=5,
                 transferred=10020,
-                claimable_locked=17,
-                unclaimable_locked=10,
+                locked_amounts=LockedAmounts(claimable_locked=17, unclaimable_locked=10),
             ),
         ],
         # participant1 provides a valid but old participant2 balance proof
         # these examples must maintain the same order of calculating the balances
         # imposed by tranferred2 + locked2 >= transferred1 + locked1
-        'last_old': [
+        "last_old": [
             # participant1 provides an old participant2 balance proof with a smaller
             # transferred amount
             ChannelValues(
                 deposit=40,
                 withdrawn=10,
                 transferred=20020,
-                claimable_locked=4,
-                unclaimable_locked=2,
+                locked_amounts=LockedAmounts(claimable_locked=4, unclaimable_locked=2),
             ),
             # participant1 provides an old participant2 balance proof with a smaller
             # claimable locked amount
@@ -150,8 +131,7 @@ channel_settle_test_values = [
                 deposit=40,
                 withdrawn=10,
                 transferred=20030,
-                claimable_locked=0,
-                unclaimable_locked=2,
+                locked_amounts=LockedAmounts(claimable_locked=0, unclaimable_locked=2),
             ),
             # participant1 provides an old participant2 balance proof with a smaller
             # unclaimable locked amount
@@ -159,8 +139,7 @@ channel_settle_test_values = [
                 deposit=40,
                 withdrawn=10,
                 transferred=20030,
-                claimable_locked=4,
-                unclaimable_locked=0,
+                locked_amounts=LockedAmounts(claimable_locked=4, unclaimable_locked=0),
             ),
             # participant1 provides an old participant2 balance proof with a smaller transferred
             # & claimable locked amount
@@ -168,16 +147,14 @@ channel_settle_test_values = [
                 deposit=40,
                 withdrawn=10,
                 transferred=20022,
-                claimable_locked=0,
-                unclaimable_locked=2,
+                locked_amounts=LockedAmounts(claimable_locked=0, unclaimable_locked=2),
             ),
             # participant1 provides an old participant2 balance proof will all values smaller
             ChannelValues(
                 deposit=40,
                 withdrawn=10,
                 transferred=20024,
-                claimable_locked=0,
-                unclaimable_locked=0,
+                locked_amounts=LockedAmounts(claimable_locked=0, unclaimable_locked=0),
             ),
             # participant1 provides an old participant2 balance proof, but with the same
             # transferred + claimable_locked
@@ -186,8 +163,7 @@ channel_settle_test_values = [
                 deposit=40,
                 withdrawn=10,
                 transferred=19994,
-                claimable_locked=40,
-                unclaimable_locked=2,
+                locked_amounts=LockedAmounts(claimable_locked=40, unclaimable_locked=2),
             ),
             # participant1 provides an old participant2 balance proof, with a higher
             # unclaimable locked amount
@@ -196,8 +172,7 @@ channel_settle_test_values = [
                 deposit=40,
                 withdrawn=10,
                 transferred=20030,
-                claimable_locked=4,
-                unclaimable_locked=20,
+                locked_amounts=LockedAmounts(claimable_locked=4, unclaimable_locked=20),
             ),
             # participant1 provides an old participant2 balance proof with a higher
             # claimable locked amount,
@@ -209,8 +184,7 @@ channel_settle_test_values = [
                 deposit=40,
                 withdrawn=10,
                 transferred=19990,
-                claimable_locked=40,
-                unclaimable_locked=2,
+                locked_amounts=LockedAmounts(claimable_locked=40, unclaimable_locked=2),
             ),
             # participant1 provides an old participant2 balance proof with a higher
             # unclaimable locked amount and a higher claimable locked amount but lower
@@ -219,86 +193,57 @@ channel_settle_test_values = [
                 deposit=40,
                 withdrawn=10,
                 transferred=19990,
-                claimable_locked=40,
-                unclaimable_locked=10,
+                locked_amounts=LockedAmounts(claimable_locked=40, unclaimable_locked=10),
             ),
         ],
     },
     {
         # neither participants provide balance proofs
-        'valid_last': (
-            ChannelValues(
-                deposit=40,
-                withdrawn=10,
-                transferred=0,
-                claimable_locked=0,
-                unclaimable_locked=0,
-            ),
-            ChannelValues(
-                deposit=35,
-                withdrawn=5,
-                transferred=0,
-                claimable_locked=0,
-                unclaimable_locked=0,
-            ),
-        ),
+        "valid_last": (
+            ChannelValues(deposit=40, withdrawn=10, transferred=0),
+            ChannelValues(deposit=35, withdrawn=5, transferred=0),
+        )
     },
     {
         # both balance proofs provided are valid
-        'valid_last': (
+        "valid_last": (
             ChannelValues(
                 deposit=35,
                 withdrawn=5,
                 transferred=20,
-                claimable_locked=4,
-                unclaimable_locked=0,
+                locked_amounts=LockedAmounts(claimable_locked=4, unclaimable_locked=0),
             ),
             ChannelValues(
                 deposit=40,
                 withdrawn=10,
                 transferred=30,
-                claimable_locked=4,
-                unclaimable_locked=2,
+                locked_amounts=LockedAmounts(claimable_locked=4, unclaimable_locked=2),
             ),
-        ),
+        )
     },
     {
         # Participants have withdrawn all their tokens already
-        'valid_last': (
-            ChannelValues(
-                deposit=5,
-                withdrawn=15,
-                transferred=20,
-                claimable_locked=0,
-                unclaimable_locked=0,
-            ),
-            ChannelValues(
-                deposit=20,
-                withdrawn=10,
-                transferred=30,
-                claimable_locked=0,
-                unclaimable_locked=0,
-            ),
-        ),
+        "valid_last": (
+            ChannelValues(deposit=5, withdrawn=15, transferred=20),
+            ChannelValues(deposit=20, withdrawn=10, transferred=30),
+        )
     },
     {
         # Participants have withdrawn all their finalized transfer tokens except locked,
-        'valid_last': (
+        "valid_last": (
             ChannelValues(
                 deposit=5,
                 withdrawn=5,
                 transferred=20,
-                claimable_locked=4,
-                unclaimable_locked=1,
+                locked_amounts=LockedAmounts(claimable_locked=4, unclaimable_locked=1),
             ),
             ChannelValues(
                 deposit=25,
                 withdrawn=5,
                 transferred=30,
-                claimable_locked=2,
-                unclaimable_locked=3,
+                locked_amounts=LockedAmounts(claimable_locked=2, unclaimable_locked=3),
             ),
-        ),
+        )
     },
 ]
 
@@ -309,15 +254,13 @@ channel_settle_invalid_test_values = [
             deposit=35,
             withdrawn=5,
             transferred=20020,
-            claimable_locked=30000000,
-            unclaimable_locked=10000000,
+            locked_amounts=LockedAmounts(claimable_locked=30000000, unclaimable_locked=10000000),
         ),
         ChannelValues(
             deposit=40,
             withdrawn=10,
             transferred=20030,
-            claimable_locked=10000000,
-            unclaimable_locked=40000000,
+            locked_amounts=LockedAmounts(claimable_locked=10000000, unclaimable_locked=40000000),
         ),
     ),
     # participant2 does not provide a balance proof + locked amount too big
@@ -326,15 +269,13 @@ channel_settle_invalid_test_values = [
             deposit=35,
             withdrawn=5,
             transferred=0,
-            claimable_locked=0,
-            unclaimable_locked=0,
+            locked_amounts=LockedAmounts(claimable_locked=0, unclaimable_locked=0),
         ),
         ChannelValues(
             deposit=40,
             withdrawn=10,
             transferred=30,
-            claimable_locked=4,
-            unclaimable_locked=2,
+            locked_amounts=LockedAmounts(claimable_locked=4, unclaimable_locked=2),
         ),
     ),
     # Participants have withdrawn all their finalized transfer tokens already,
@@ -344,47 +285,31 @@ channel_settle_invalid_test_values = [
             deposit=5,
             withdrawn=10,
             transferred=20,
-            claimable_locked=4,
-            unclaimable_locked=1,
+            locked_amounts=LockedAmounts(claimable_locked=4, unclaimable_locked=1),
         ),
         ChannelValues(
             deposit=20,
             withdrawn=5,
             transferred=30,
-            claimable_locked=2,
-            unclaimable_locked=3,
+            locked_amounts=LockedAmounts(claimable_locked=2, unclaimable_locked=3),
         ),
+    ),
+    (
+        ChannelValues(deposit=5, withdrawn=5, transferred=20),
+        ChannelValues(deposit=10, withdrawn=10, transferred=30),
     ),
     (
         ChannelValues(
             deposit=5,
             withdrawn=5,
             transferred=20,
-            claimable_locked=0,
-            unclaimable_locked=0,
+            locked_amounts=LockedAmounts(claimable_locked=1, unclaimable_locked=3),
         ),
         ChannelValues(
             deposit=10,
             withdrawn=10,
             transferred=30,
-            claimable_locked=0,
-            unclaimable_locked=0,
-        ),
-    ),
-    (
-        ChannelValues(
-            deposit=5,
-            withdrawn=5,
-            transferred=20,
-            claimable_locked=1,
-            unclaimable_locked=3,
-        ),
-        ChannelValues(
-            deposit=10,
-            withdrawn=10,
-            transferred=30,
-            claimable_locked=2,
-            unclaimable_locked=4,
+            locked_amounts=LockedAmounts(claimable_locked=2, unclaimable_locked=4),
         ),
     ),
     # overflow on transferred amounts
@@ -393,15 +318,13 @@ channel_settle_invalid_test_values = [
             deposit=35,
             withdrawn=5,
             transferred=MAX_UINT256 - 15,
-            claimable_locked=3,
-            unclaimable_locked=1,
+            locked_amounts=LockedAmounts(claimable_locked=3, unclaimable_locked=1),
         ),
         ChannelValues(
             deposit=40,
             withdrawn=10,
             transferred=MAX_UINT256 - 5,
-            claimable_locked=5,
-            unclaimable_locked=1,
+            locked_amounts=LockedAmounts(claimable_locked=5, unclaimable_locked=1),
         ),
     ),
     # overflow on transferred amount
@@ -410,15 +333,13 @@ channel_settle_invalid_test_values = [
             deposit=35,
             withdrawn=5,
             transferred=0,
-            claimable_locked=4,
-            unclaimable_locked=0,
+            locked_amounts=LockedAmounts(claimable_locked=4, unclaimable_locked=0),
         ),
         ChannelValues(
             deposit=40,
             withdrawn=10,
             transferred=MAX_UINT256 - 5,
-            claimable_locked=0,
-            unclaimable_locked=6,
+            locked_amounts=LockedAmounts(claimable_locked=0, unclaimable_locked=6),
         ),
     ),
     # overflow on transferred amount
@@ -427,15 +348,13 @@ channel_settle_invalid_test_values = [
             deposit=40,
             withdrawn=10,
             transferred=0,
-            claimable_locked=6,
-            unclaimable_locked=0,
+            locked_amounts=LockedAmounts(claimable_locked=6, unclaimable_locked=0),
         ),
         ChannelValues(
             deposit=35,
             withdrawn=5,
             transferred=MAX_UINT256 - 15,
-            claimable_locked=1,
-            unclaimable_locked=3,
+            locked_amounts=LockedAmounts(claimable_locked=1, unclaimable_locked=3),
         ),
     ),
     # overflow on transferred amount
@@ -444,16 +363,9 @@ channel_settle_invalid_test_values = [
             deposit=35,
             withdrawn=5,
             transferred=20020,
-            claimable_locked=200000,
-            unclaimable_locked=200,
+            locked_amounts=LockedAmounts(claimable_locked=200000, unclaimable_locked=200),
         ),
-        ChannelValues(
-            deposit=40,
-            withdrawn=10,
-            transferred=MAX_UINT256 - 5,
-            claimable_locked=0,
-            unclaimable_locked=0,
-        ),
+        ChannelValues(deposit=40, withdrawn=10, transferred=MAX_UINT256 - 5),
     ),
     # overflow on transferred amount, overflow on netted transfer + deposit
     (
@@ -461,15 +373,8 @@ channel_settle_invalid_test_values = [
             deposit=35,
             withdrawn=5,
             transferred=20,
-            claimable_locked=200,
-            unclaimable_locked=200000,
+            locked_amounts=LockedAmounts(claimable_locked=200, unclaimable_locked=200000),
         ),
-        ChannelValues(
-            deposit=40,
-            withdrawn=10,
-            transferred=MAX_UINT256 - 5,
-            claimable_locked=0,
-            unclaimable_locked=0,
-        ),
+        ChannelValues(deposit=40, withdrawn=10, transferred=MAX_UINT256 - 5),
     ),
 ]
