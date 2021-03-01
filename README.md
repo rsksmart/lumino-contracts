@@ -45,7 +45,7 @@ This command should output version 3.7.x
 
 Inside the virtual environment run the following command to install the Lumino deployment scripts dependencies:
 
-```$ pip install -r requirements.txt```
+```$ pip install -r requirements-dev.txt```
 
 
 ## Creating a Lumino custom network
