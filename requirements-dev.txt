@@ -19,5 +19,5 @@ pylint-quotes
 requests_mock
 isort
 pipdeptree
-eth-typing==2.0.0
-eth-abi<2.0.0
+eth-typing
+eth-abi
