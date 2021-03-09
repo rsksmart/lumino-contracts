@@ -41,11 +41,17 @@ Run:
 
 This command should output version 3.7.x
 
-6. Install RIF Lumino contracts requirements
+6. Make sure `pip` is up-to-date
+
+Having the latest `pip` can help solve conflicts with dependencies. You can update `pip` by executing:
+
+```$ python -m pip install -U pip```
+
+7. Install RIF Lumino contracts requirements
 
 Inside the virtual environment run the following command to install the Lumino deployment scripts dependencies:
 
-```$ pip install -r requirements-dev.txt```
+```$ pip install -r requirements.txt```
 
 
 ## Creating a Lumino custom network
